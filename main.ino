@@ -1,5 +1,40 @@
 #include <ArduinoJson.h>
 
+/*
+partido {
+  "jugadores": [
+    {
+      "nombre": "Jugador1",
+      "puntos": 0,
+      "juegos": 1,
+      "sets": 1
+    },
+    {
+      "nombre": "Jugador2",
+      "puntos": 0,
+      "juegos": 0,
+      "sets": 0
+    }
+  ],
+  "historial": [
+    {
+      "set": 1,
+      "games": [
+        [["0", "15"],["0", "30"],["0", "40"]],
+        [["15", "0"],["30", "0"],["40", "0"]]
+      ]
+    },
+    {
+      "set": 2,
+      "games": [
+        [["0", "15"],["15", "15"],["30", "15"],["40", "15"]],
+        [["15", "0"],["15", "15"],["15", "30"],["15", "40"]]
+      ]
+    }
+  ]
+}
+*/  
+
 // Estructura para la información de cada jugador
 struct Jugador {
   String nombre;
