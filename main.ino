@@ -98,7 +98,6 @@ void estructuraAJson(PartidoTenis &partido, JsonDocument &doc) {
   }
 }
 
-#include <ArduinoJson.h>
 
 // Definir las estructuras (como se mostró anteriormente)
 
