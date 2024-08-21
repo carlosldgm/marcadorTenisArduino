@@ -35,7 +35,8 @@ partido {
 }
 */  
 
-// Estructura para la información de cada jugador
+
+// Definir las estructuras
 struct Jugador {
   String nombre;
   int puntos;
@@ -43,103 +44,96 @@ struct Jugador {
   int sets;
 };
 
-// Estructura para los puntos en un juego específico
-struct PuntoJuego {
-  String puntoJugador1;
-  String puntoJugador2;
-};
-
-// Estructura para los juegos dentro de un set
 struct Game {
-  PuntoJuego puntos[10]; // Asumimos un máximo de 10 puntos por juego, puedes ajustar según sea necesario
-  int numPuntos; // Número de puntos registrados en el juego
+  String puntosJugador1;
+  String puntosJugador2;
 };
 
-// Estructura para la información de un set
-struct Historial {
-  int numSet;
-  Game games[10]; // Asumimos un máximo de 10 juegos por set, puedes ajustar según sea necesario
-  int numGames; // Número de juegos registrados en el set
+struct SetHistorial {
+  int setNumero;
+  Game games[10]; // Supongamos que un set puede tener hasta 10 games
 };
 
-// Estructura principal para el partido de tenis
+struct HistorialPartido {
+  SetHistorial sets[5]; // Supongamos que un partido puede tener hasta 5 sets
+};
+
 struct PartidoTenis {
   Jugador jugadores[2];
-  Historial historial[5]; // Asumimos un máximo de 5 sets por partido, puedes ajustar según sea necesario
-  int numSets; // Número de sets registrados en el historial
+  HistorialPartido historial[2]; // Supongamos que el historial incluye todos los sets
 };
 
 void estructuraAJson(PartidoTenis &partido, JsonDocument &doc) {
-  // Añadir jugadores al JSON
-  JsonArray jugadores = doc.createNestedArray("jugadores");
   for (int i = 0; i < 2; i++) {
-    JsonObject jugador = jugadores.createNestedObject();
-    jugador["nombre"] = partido.jugadores[i].nombre;
-    jugador["puntos"] = partido.jugadores[i].puntos;
-    jugador["juegos"] = partido.jugadores[i].juegos;
-    jugador["sets"] = partido.jugadores[i].sets;
+    doc["jugadores"][i]["nombre"] = partido.jugadores[i].nombre;
+    doc["jugadores"][i]["puntos"] = partido.jugadores[i].puntos;
+    doc["jugadores"][i]["juegos"] = partido.jugadores[i].juegos;
+    doc["jugadores"][i]["sets"] = partido.jugadores[i].sets;
   }
 
-  // Añadir historial de sets al JSON
-  JsonArray historial = doc.createNestedArray("historial");
-  for (int i = 0; i < partido.numSets; i++) {
-    JsonObject set = historial.createNestedObject();
-    set["set"] = partido.historial[i].numSet;
-
-    JsonArray games = set.createNestedArray("games");
-    for (int j = 0; j < partido.historial[i].numGames; j++) {
-      JsonArray puntos = games.createNestedArray();
-      for (int k = 0; k < partido.historial[i].games[j].numPuntos; k++) {
-        JsonArray punto = puntos.createNestedArray();
-        punto.add(partido.historial[i].games[j].puntos[k].puntoJugador1);
-        punto.add(partido.historial[i].games[j].puntos[k].puntoJugador2);
-      }
+  for (int i = 0; i < 2; i++) {
+    doc["historial"][i]["set"] = partido.historial[i].sets[0].setNumero;
+    JsonArray games = doc["historial"][i].createNestedArray("games");
+    for (int j = 0; j < 10; j++) {
+      JsonArray game = games.createNestedArray();
+      game.add(partido.historial[i].sets[0].games[j].puntosJugador1);
+      game.add(partido.historial[i].sets[0].games[j].puntosJugador2);
     }
   }
 }
 
+void imprimirPartido(PartidoTenis &partido) {
+  Serial.println("Detalles del Partido:");
+  for (int i = 0; i < 2; i++) {
+    Serial.print("Jugador ");
+    Serial.print(i + 1);
+    Serial.println(":");
+    Serial.print("  Nombre: ");
+    Serial.println(partido.jugadores[i].nombre);
+    Serial.print("  Puntos: ");
+    Serial.println(partido.jugadores[i].puntos);
+    Serial.print("  Juegos: ");
+    Serial.println(partido.jugadores[i].juegos);
+    Serial.print("  Sets: ");
+    Serial.println(partido.jugadores[i].sets);
+    Serial.println();
+  }
 
-// Definir las estructuras (como se mostró anteriormente)
+  Serial.println("Historial de Sets:");
+  for (int i = 0; i < 2; i++) {
+    Serial.print("Set ");
+    Serial.println(partido.historial[i].sets[0].setNumero);
+
+    for (int j = 0; j < 10; j++) {
+      String puntosJ1 = partido.historial[i].sets[0].games[j].puntosJugador1;
+      String puntosJ2 = partido.historial[i].sets[0].games[j].puntosJugador2;
+
+      if (puntosJ1 != "" && puntosJ2 != "") {
+        Serial.print("  Juego ");
+        Serial.print(j + 1);
+        Serial.print(": ");
+        Serial.print(puntosJ1);
+        Serial.print(" - ");
+        Serial.println(puntosJ2);
+      }
+    }
+    Serial.println();
+  }
+}
 
 void setup() {
   Serial.begin(9600);
 
-  // Crear y llenar un objeto PartidoTenis
   PartidoTenis partido;
-  
-  // Llenar información de los jugadores
   partido.jugadores[0] = {"Jugador1", 0, 1, 1};
   partido.jugadores[1] = {"Jugador2", 0, 0, 0};
-  
-  // Llenar información del historial de sets y juegos
-  partido.numSets = 2;
-  
-  // Set 1
-  partido.historial[0].numSet = 1;
-  partido.historial[0].numGames = 2;
-  partido.historial[0].games[0].numPuntos = 3;
-  partido.historial[0].games[0].puntos[0] = {"0", "15"};
-  partido.historial[0].games[0].puntos[1] = {"0", "30"};
-  partido.historial[0].games[0].puntos[2] = {"0", "40"};
-  partido.historial[0].games[1].numPuntos = 3;
-  partido.historial[0].games[1].puntos[0] = {"15", "0"};
-  partido.historial[0].games[1].puntos[1] = {"30", "0"};
-  partido.historial[0].games[1].puntos[2] = {"40", "0"};
-  
-  // Set 2
-  partido.historial[1].numSet = 2;
-  partido.historial[1].numGames = 2;
-  partido.historial[1].games[0].numPuntos = 4;
-  partido.historial[1].games[0].puntos[0] = {"0", "15"};
-  partido.historial[1].games[0].puntos[1] = {"15", "15"};
-  partido.historial[1].games[0].puntos[2] = {"30", "15"};
-  partido.historial[1].games[0].puntos[3] = {"40", "15"};
-  partido.historial[1].games[1].numPuntos = 4;
-  partido.historial[1].games[1].puntos[0] = {"15", "0"};
-  partido.historial[1].games[1].puntos[1] = {"15", "15"};
-  partido.historial[1].games[1].puntos[2] = {"15", "30"};
-  partido.historial[1].games[1].puntos[3] = {"15", "40"};
-  
+
+  partido.historial[0].sets[0] = {1, {{"0", "15"}, {"0", "30"}, {"0", "40"}, {"15", "0"}, {"30", "0"}, {"40", "0"}}};
+  partido.historial[1].sets[0] = {2, {{"0", "15"}, {"15", "15"}, {"30", "15"}, {"40", "15"}, {"15", "0"}, {"15", "15"}, {"15", "30"}, {"15", "40"}}};
+
+  // Imprimir los detalles del partido en la consola serial
+  imprimirPartido(partido);
+
   // Convertir la estructura a JSON
   StaticJsonDocument<2048> doc;
   estructuraAJson(partido, doc);
@@ -147,9 +141,9 @@ void setup() {
   // Imprimir el JSON en la consola serial
   serializeJson(doc, Serial);
   //Serial.println(serializeJsonPretty(doc, Serial));
-
 }
 
 void loop() {
   // Nada que hacer en el loop
 }
+
