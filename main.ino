@@ -1,85 +1,99 @@
 #include <ArduinoJson.h>
-
 /*
-partido {
-  "jugadores": [
-    {
-      "nombre": "Jugador1",
-      "puntos": 0,
-      "juegos": 1,
-      "sets": 1
-    },
-    {
-      "nombre": "Jugador2",
-      "puntos": 0,
-      "juegos": 0,
-      "sets": 0
-    }
-  ],
-  "historial": [
-    {
-      "set": 1,
-      "games": [
-        [["0", "15"],["0", "30"],["0", "40"]],
-        [["15", "0"],["30", "0"],["40", "0"]]
-      ]
-    },
-    {
-      "set": 2,
-      "games": [
-        [["0", "15"],["15", "15"],["30", "15"],["40", "15"]],
-        [["15", "0"],["15", "15"],["15", "30"],["15", "40"]]
-      ]
-    }
-  ]
-}
-*/  
-
+{"jugadores":[{"nombre":"Jugador1","puntos":0,"juegos":1,"sets":1},{"nombre":"Jugador2","puntos":0,"juegos":0,"sets":0}],
+"historial":
+[{"set":1,"games":[{"game":1,"puntos":[["0","15"],["0","30"],["0","40"],["",""]]},{"game":2,"puntos":[["15","0"],["30","0"],["40","0"],["",""]]}]},
+{"set":2,"games":[{"game":1,"puntos":[["0","15"],["15","15"],["30","15"],["40","15"]]},{"game":2,"puntos":[["15","0"],["15","15"],["15","30"],["15","40"]]}]}]}
+*/
 
 // Definir las estructuras
 struct Jugador {
-  String nombre;
+  char nombre[20];  // Cambiar a char[] para ahorrar memoria
   int puntos;
   int juegos;
   int sets;
 };
 
+struct Punto {
+  char puntosJugador1[3];  // Cambiar a char[] con tamaño fijo
+  char puntosJugador2[3];
+};
+
 struct Game {
-  String puntosJugador1;
-  String puntosJugador2;
+  int gameNumero;
+  Punto puntos[4];  // Reducir a 4 puntos por juego
 };
 
 struct SetHistorial {
   int setNumero;
-  Game games[10]; // Supongamos que un set puede tener hasta 10 games
+  Game games[2];  // Reducir a 2 juegos por set
 };
 
 struct HistorialPartido {
-  SetHistorial sets[5]; // Supongamos que un partido puede tener hasta 5 sets
+  SetHistorial sets[2];  // Reducir a 2 sets por partido
 };
 
 struct PartidoTenis {
   Jugador jugadores[2];
-  HistorialPartido historial[2]; // Supongamos que el historial incluye todos los sets
+  HistorialPartido historial;
 };
 
-void estructuraAJson(PartidoTenis &partido, JsonDocument &doc) {
+void llenarPartido(PartidoTenis &partido) {
+  strcpy(partido.jugadores[0].nombre, "Jugador1");
+  partido.jugadores[0].puntos = 0;
+  partido.jugadores[0].juegos = 1;
+  partido.jugadores[0].sets = 1;
+
+  strcpy(partido.jugadores[1].nombre, "Jugador2");
+  partido.jugadores[1].puntos = 0;
+  partido.jugadores[1].juegos = 0;
+  partido.jugadores[1].sets = 0;
+
+  partido.historial.sets[0] = {1, {
+    {1, {{"0", "15"}, {"0", "30"}, {"0", "40"}}},
+    {2, {{"15", "0"}, {"30", "0"}, {"40", "0"}}}
+  }};
+
+  partido.historial.sets[1] = {2, {
+    {1, {{"0", "15"}, {"15", "15"}, {"30", "15"}, {"40", "15"}}},
+    {2, {{"15", "0"}, {"15", "15"}, {"15", "30"}, {"15", "40"}}}
+  }};
+}
+
+// Función optimizada para convertir PartidoTenis a JSON
+void estructuraAJsonOptimizada(PartidoTenis &partido, Print &output) {
+  StaticJsonDocument<512> doc; // Tamaño reducido para ahorrar memoria
+
+  JsonArray jugadores = doc.createNestedArray("jugadores");
   for (int i = 0; i < 2; i++) {
-    doc["jugadores"][i]["nombre"] = partido.jugadores[i].nombre;
-    doc["jugadores"][i]["puntos"] = partido.jugadores[i].puntos;
-    doc["jugadores"][i]["juegos"] = partido.jugadores[i].juegos;
-    doc["jugadores"][i]["sets"] = partido.jugadores[i].sets;
+    JsonObject jugador = jugadores.createNestedObject();
+    jugador["nombre"] = partido.jugadores[i].nombre;
+    jugador["puntos"] = partido.jugadores[i].puntos;
+    jugador["juegos"] = partido.jugadores[i].juegos;
+    jugador["sets"] = partido.jugadores[i].sets;
   }
 
+  JsonArray historial = doc.createNestedArray("historial");
   for (int i = 0; i < 2; i++) {
-    doc["historial"][i]["set"] = partido.historial[i].sets[0].setNumero;
-    JsonArray games = doc["historial"][i].createNestedArray("games");
-    for (int j = 0; j < 10; j++) {
-      JsonArray game = games.createNestedArray();
-      game.add(partido.historial[i].sets[0].games[j].puntosJugador1);
-      game.add(partido.historial[i].sets[0].games[j].puntosJugador2);
+    JsonObject setObj = historial.createNestedObject();
+    setObj["set"] = partido.historial.sets[i].setNumero;
+    
+    JsonArray games = setObj.createNestedArray("games");
+    for (int j = 0; j < 2; j++) {
+      JsonObject gameObj = games.createNestedObject();
+      gameObj["game"] = partido.historial.sets[i].games[j].gameNumero;
+      
+      JsonArray puntos = gameObj.createNestedArray("puntos");
+      for (int k = 0; k < 4; k++) {
+        JsonArray punto = puntos.createNestedArray();
+        punto.add(partido.historial.sets[i].games[j].puntos[k].puntosJugador1);
+        punto.add(partido.historial.sets[i].games[j].puntos[k].puntosJugador2);
+      }
     }
   }
+
+  // Serializar directamente al objeto Print (Serial)
+  serializeJson(doc, output);
 }
 
 void imprimirPartido(PartidoTenis &partido) {
@@ -100,21 +114,19 @@ void imprimirPartido(PartidoTenis &partido) {
   }
 
   Serial.println("Historial de Sets:");
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 2; i++) {  // Ajustado a 2 sets
     Serial.print("Set ");
-    Serial.println(partido.historial[i].sets[0].setNumero);
+    Serial.println(partido.historial.sets[i].setNumero);
 
-    for (int j = 0; j < 10; j++) {
-      String puntosJ1 = partido.historial[i].sets[0].games[j].puntosJugador1;
-      String puntosJ2 = partido.historial[i].sets[0].games[j].puntosJugador2;
+    for (int j = 0; j < 2; j++) {  // Ajustado a 2 juegos por set
+      Serial.print("  Juego ");
+      Serial.println(partido.historial.sets[i].games[j].gameNumero);
 
-      if (puntosJ1 != "" && puntosJ2 != "") {
-        Serial.print("  Juego ");
-        Serial.print(j + 1);
-        Serial.print(": ");
-        Serial.print(puntosJ1);
+      for (int k = 0; k < 4; k++) {  // Ajustado a 4 puntos por juego
+        Serial.print("    Puntos: ");
+        Serial.print(partido.historial.sets[i].games[j].puntos[k].puntosJugador1);
         Serial.print(" - ");
-        Serial.println(puntosJ2);
+        Serial.println(partido.historial.sets[i].games[j].puntos[k].puntosJugador2);
       }
     }
     Serial.println();
@@ -124,26 +136,17 @@ void imprimirPartido(PartidoTenis &partido) {
 void setup() {
   Serial.begin(9600);
 
+  // Crear la estructura del partido
   PartidoTenis partido;
-  partido.jugadores[0] = {"Jugador1", 0, 1, 1};
-  partido.jugadores[1] = {"Jugador2", 0, 0, 0};
+  llenarPartido(partido);
 
-  partido.historial[0].sets[0] = {1, {{"0", "15"}, {"0", "30"}, {"0", "40"}, {"15", "0"}, {"30", "0"}, {"40", "0"}}};
-  partido.historial[1].sets[0] = {2, {{"0", "15"}, {"15", "15"}, {"30", "15"}, {"40", "15"}, {"15", "0"}, {"15", "15"}, {"15", "30"}, {"15", "40"}}};
-
-  // Imprimir los detalles del partido en la consola serial
+  // Imprimir los detalles del partido
   imprimirPartido(partido);
 
-  // Convertir la estructura a JSON
-  StaticJsonDocument<2048> doc;
-  estructuraAJson(partido, doc);
-
-  // Imprimir el JSON en la consola serial
-  serializeJson(doc, Serial);
-  //Serial.println(serializeJsonPretty(doc, Serial));
+  // Imprimir el JSON generado optimizado
+  estructuraAJsonOptimizada(partido, Serial);
 }
 
 void loop() {
-  // Nada que hacer en el loop
+  // No es necesario hacer nada en el loop
 }
-
